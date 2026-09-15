@@ -1,0 +1,27 @@
+# Operational & Competition Artifacts (Keep raw targets & secrets out of git)
+target/
+scans/
+evidence/
+ai_outputs/
+reports/
+poc/
+baseline/
+notes/
+
+# Environment and Secrets
+.env
+.env.*
+*.key
+*.pem
+*.token
+
+# Python & System caches
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.DS_Store
+*.swp
+*.bak
