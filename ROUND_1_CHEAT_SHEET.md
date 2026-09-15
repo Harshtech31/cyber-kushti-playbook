@@ -1,48 +1,49 @@
 # CYBER KUSHTI 2026 - ROUND 1 AKHADA CHEAT SHEET
 
 > **921 TEAMS $\to$ 50 ADVANCE (Top 5.4% Cutoff)**  
-> **TIMETABLE:**  
-> - **14:00 (2:00 PM)**: **Portal Access Released** (Track challenges, review rules, scope, scoring rubric & submission requirements).  
-> - **17:00 (5:00 PM)**: **Target Git Repo Released & Work Kicks Off**.  
-> - **23:00 (11:00 PM)**: **Official Work & Submission Window Ends**.  
-> **STRATEGY:** Use the 14:00 - 17:00 window to master the competition portal, map tracking requirements, and dry-run tooling so that the moment the repo drops at 17:00, execution is immediate and flawless.
+> **OFFICIAL PLATFORM:** [http://hackathon.nsd.org.in/login](http://hackathon.nsd.org.in/login)  
+> **CONFIRMED WORKFLOW:** You do not clone the repo locally. The target repository is allocated in the platform. You supply an AI API key (Google Gemini, Anthropic, OpenAI, or Qwen) in the portal, which triggers the automated scan (`/api/stages/{id}/scans/run`). Your team then reviews each finding, classifies it (`TRUE_POSITIVE` vs `FALSE_POSITIVE`), writes the justification & evidence, and locks the submission (`/api/stages/{id}/submit`).
 
 ---
 
-## The Master Timeline
+## The Master Timetable
 
-```text
-14:00 [PORTAL ACCESS] ──(Phase 0: Portal Recon & Tool Readiness)──> 17:00 [REPO DROP]
-  ──(Phase 1: Ingest, Spin Docker, Parallel Scans & AI Prompts)──> 17:45
-  ──(Phase 2: Triage & Quick-FP Pruning)──> 18:30
-  ──(Phase 3: Dual Static + Dynamic Proof)──> 20:30
-  ──(Phase 4: Attack Chains & Business Logic)──> 21:30
-  ──(Phase 5: Portal Entry & Report Peer-Review)──> 22:30
-  ──(Phase 6: Submission Freeze & Verification)──> 23:00
-```
-
----
-
-## Phase 0: Portal Recon & Pre-Fight Readiness (14:00 - 17:00)
-
-*Portal access opens at 14:00. Use these 3 hours to understand portal tracking mechanisms and ensure zero friction.*
-
-1. **Portal Onboarding & Reconnaissance (M1 - 14:00 - 14:45)**:
-   - Verify logins for all 3 team members.
-   - Inspect the Portal Tracking UI: What fields are required? (e.g. Title, Severity dropdown, Status/Verdict [TP vs FP], Affected File/Line, Description, PoC attachment, Remediation).
-   - Clarify scoring rules, penalties for false submissions, attachment limits, and allowed/disallowed actions.
-2. **Tooling & Environment Dry-Run (M2 & M3 - 14:45 - 16:15)**:
-   - Verify `semgrep`, `codeql`, `trivy`, `osv-scanner`, `gitleaks` run cleanly.
-   - Verify Docker daemon is active and tested (`docker run --rm hello-world`).
-   - Test AI LLM access (API keys loaded or web workspaces ready with [AI_PROMPTING_PLAYBOOK.md](AI_PROMPTING_PLAYBOOK.md)).
-   - Prepare clean shared directories (`scans/`, `evidence/`, `findings/`, `ai_outputs/`).
-3. **Pre-Battle Alignment (All - 16:15 - 17:00)**:
-   - Agree on portal submission workflow (M1 leads portal tracking entries; M2/M3 provide vetted proof).
-   - Stand by at 16:55 for the Git repo URL drop.
+| Clock | Phase | Action on http://hackathon.nsd.org.in |
+| :--- | :--- | :--- |
+| **14:00 – 17:00** | **Portal Setup & Key Prep** | Log into portal, confirm team members, check stage status, **prepare AI API keys** (Google AI Studio, OpenAI, or Anthropic). |
+| **17:00 – 17:15** | **Scan Trigger** | Repo allocated! Select AI Provider & Model, paste API Key, and click **Run Scan**. |
+| **17:15 – 17:45** | **Live Scan Ingestion** | Monitor real-time scan logs. Findings populate the "Scan findings" table automatically. |
+| **17:45 – 20:30** | **Team Call / Classification** | Open each finding: Select `TRUE_POSITIVE` or `FALSE_POSITIVE`, write justification, add code/curl evidence, and click Save. |
+| **20:30 – 21:30** | **Deep Logic & Edge-Cases** | Cross-verify high-severity findings, check missed IDORs/business logic, refine debunking for False Positives. |
+| **21:30 – 22:30** | **Review & Audit** | Verify `Answered: All · Unanswered: 0`. 3-Member Peer Review sign-off. |
+| **22:30 – 22:45** | **Lock & Submit** | Go to Qualifier Submission page $\to$ click **"Confirm submission"** (locks entry before 23:00). |
+| **22:45 – 23:00** | **Verification** | Confirm status displays `SUBMITTED v1` and verify confirmation. |
 
 ---
 
-## Phase 1: Repo Drop, Ingestion & Parallel Discovery (17:00 - 17:45)
+## The Platform Form Fields (Exact Schema)
+
+When reviewing each finding in the portal (`/api/vulnerabilities/{id}/response`), you must fill in:
+
+1. **Classification Dropdown**:
+   - `TRUE_POSITIVE`
+   - `FALSE_POSITIVE`
+2. **Why did you classify this finding this way? (Justification)**:
+   - For TP: Clear 2-3 sentence root-cause summary explaining why input reaches sink without authorization/sanitization.
+   - For FP: Exact technical debunking (e.g. framework auto-escaping, ORM parameterization, dead code, non-attacker input).
+3. **Optional Evidence (evidence_text)**:
+   - Code line citations, safe curl reproduction request/response, or ripgrep proof.
+
+---
+
+## Supported AI Providers & Models in the Portal
+
+| Provider | Supported Models | API Key Format |
+| :--- | :--- | :--- |
+| **Google** | `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-2.5-pro` | Google AI Studio Key (Get free from [aistudio.google.com](https://aistudio.google.com/)) |
+| **Anthropic** | `claude-sonnet-5`, `claude-opus-5`, `claude-haiku-4-5-20251001` | Starts with `sk-ant-...` |
+| **OpenAI** | `gpt-5.6-sol`, `gpt-5.6`, `gpt-5` | Starts with `sk-...` |
+| **Qwen** | `qwen-max`, `qwen-plus`, `qwen-turbo` | DashScope Key |
 
 *Repo drops at 17:00 sharp. Fire parallel discovery pipelines immediately.*
 

@@ -18,22 +18,23 @@
 
 ## 2. Portal Onboarding & Pre-Fight Readiness (14:00 - 17:00)
 
-*Portal access opens at 14:00. Target repo will be released at 17:00.*
+*Portal access opens at 14:00 at [http://hackathon.nsd.org.in/login](http://hackathon.nsd.org.in/login). Target repo is allocated for scan at 17:00.*
 
-- [ ] **14:00 - 14:30 | Portal Intake & Setup (M1)**:
-  - [ ] Log in and verify portal credentials for all 3 team members.
-  - [ ] Inspect the Portal Tracking System: Identify required input fields (Title, Severity, TP/FP dropdown, File/Line, Description, PoC, Fix).
-  - [ ] Document portal attachment rules, character limits, and allowed formats (Markdown, PDF, ZIP).
-  - [ ] Review rules of engagement, rate limits, and scoring penalties.
+- [ ] **14:00 - 14:30 | Portal Login & AI Key Readiness (M1 & Team)**:
+  - [ ] Log into [http://hackathon.nsd.org.in/login](http://hackathon.nsd.org.in/login); verify credentials for all 3 members.
+  - [ ] **CRITICAL**: Prepare at least one working AI API key for the portal scan:
+    - [ ] **Google AI Studio Key** (Recommended/Free at [aistudio.google.com](https://aistudio.google.com)) for `gemini-3.1-pro-preview` or `gemini-3-flash-preview`.
+    - [ ] OR **OpenAI Key** (`sk-...`) for `gpt-5.6-sol` / `gpt-5`.
+    - [ ] OR **Anthropic Key** (`sk-ant-...`) for `claude-sonnet-5` / `claude-opus-5`.
+  - [ ] Verify stage status and assigned repository card (check if real or placeholder `github.com/example/...`).
 - [ ] **14:30 - 16:15 | Tooling Pipeline Dry-Run (M2 & M3)**:
-  - [ ] Test Semgrep, Gitleaks, OSV-Scanner, and Trivy on a test repo.
-  - [ ] Confirm Docker daemon is functioning (`docker ps`).
-  - [ ] Test AI prompt templates ([AI_PROMPTING_PLAYBOOK.md](AI_PROMPTING_PLAYBOOK.md)) in your AI interface.
-  - [ ] Set up local evidence structure: `scans/`, `evidence/`, `findings/`, `ai_outputs/`, `reports/`.
+  - [ ] Inspect the finding review fields: `Classification` (TRUE_POSITIVE / FALSE_POSITIVE), `Justification` textarea, `Optional evidence` textarea.
+  - [ ] Confirm local security tools environment is ready (`source ~/.security-tools/venv/bin/activate`).
+  - [ ] Review [TRUE_VS_FALSE_POSITIVE_GUIDE.md](TRUE_VS_FALSE_POSITIVE_GUIDE.md) to practice debunking common AI false alarms.
 - [ ] **16:15 - 17:00 | Pre-Battle Alignment (All)**:
-  - [ ] Assign roles for the 17:00 repo drop.
-  - [ ] M1 prepares draft finding cards matching the portal tracking form.
-  - [ ] Ready browser tabs and terminal sessions at 16:55.
+  - [ ] Ensure M1 has the AI API key copied and ready.
+  - [ ] Agree on triage communication: M1 operates portal inputs; M2 & M3 analyze code & craft evidence.
+  - [ ] At 16:55: Open the Qualifier Challenge page on the portal and await allocation.
 
 ---
 
