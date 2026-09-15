@@ -2,7 +2,9 @@
 
 > **921 TEAMS $\to$ 50 ADVANCE (Top 5.4% Cutoff)**  
 > **OFFICIAL PLATFORM:** [http://hackathon.nsd.org.in/login](http://hackathon.nsd.org.in/login)  
-> **CONFIRMED WORKFLOW:** You do not clone the repo locally. The target repository is allocated in the platform. You supply an AI API key (Google Gemini, Anthropic, OpenAI, or Qwen) in the portal, which triggers the automated scan (`/api/stages/{id}/scans/run`). Your team then reviews each finding, classifies it (`TRUE_POSITIVE` vs `FALSE_POSITIVE`), writes the justification & evidence, and locks the submission (`/api/stages/{id}/submit`).
+> **CONFIRMED SCORING FORMULA:**  
+> $$\text{Total Score} = \text{Classification Score} + \text{Justification Score} + \text{Bonus} - \text{Penalty}$$  
+> **THE GOLDEN RULE:** This is a **Precision & Accuracy** competition, NOT a volume contest. Getting 10 out of 10 findings correct with solid reasoning will beat a team that submits 30 findings with 10 wrong calls due to heavy penalties!
 
 ---
 
@@ -10,14 +12,28 @@
 
 | Clock | Phase | Action on http://hackathon.nsd.org.in |
 | :--- | :--- | :--- |
-| **14:00 – 17:00** | **Portal Setup & Key Prep** | Log into portal, confirm team members, check stage status, **prepare AI API keys** (Google AI Studio, OpenAI, or Anthropic). |
-| **17:00 – 17:15** | **Scan Trigger** | Repo allocated! Select AI Provider & Model, paste API Key, and click **Run Scan**. |
+| **14:00 – 17:00** | **Portal Setup & Key Prep** | Log into portal, confirm team members, check stage status, **prepare AI API keys** (Anthropic Claude Sonnet or OpenAI). |
+| **17:00 – 17:15** | **Scan Trigger** | Repo allocated! Select **Anthropic (Claude Sonnet)** (or OpenAI), paste API Key, and click **Run Scan**. |
 | **17:15 – 17:45** | **Live Scan Ingestion** | Monitor real-time scan logs. Findings populate the "Scan findings" table automatically. |
-| **17:45 – 20:30** | **Team Call / Classification** | Open each finding: Select `TRUE_POSITIVE` or `FALSE_POSITIVE`, write justification, add code/curl evidence, and click Save. |
-| **20:30 – 21:30** | **Deep Logic & Edge-Cases** | Cross-verify high-severity findings, check missed IDORs/business logic, refine debunking for False Positives. |
+| **17:45 – 20:30** | **Precision Triage (TP vs FP)** | Open each finding: Select `TRUE_POSITIVE` or `FALSE_POSITIVE` MCQ option, write clear reasoning, and click Save. |
+| **20:30 – 21:30** | **Deep Justification Audit** | Polish every justification to maximize `Justification Score` and eliminate false calls to avoid `Penalty`. |
 | **21:30 – 22:30** | **Review & Audit** | Verify `Answered: All · Unanswered: 0`. 3-Member Peer Review sign-off. |
 | **22:30 – 22:45** | **Lock & Submit** | Go to Qualifier Submission page $\to$ click **"Confirm submission"** (locks entry before 23:00). |
 | **22:45 – 23:00** | **Verification** | Confirm status displays `SUBMITTED v1` and verify confirmation. |
+
+---
+
+## How to Maximize the Scoring Formula
+
+1. **Classification Score (MCQ Call)**:
+   - Select either `TRUE_POSITIVE` or `FALSE_POSITIVE`.
+   - Never guess! A wrong call triggers the `Penalty` deduction.
+2. **Justification Score (Your Reasoning)**:
+   - Evaluated by judges on technical correctness.
+   - **For True Positive**: State the source parameter, why the check is missing, and the sensitive sink reached.
+   - **For False Positive**: State the exact protective control (e.g. ORM parameterized binding, framework auto-escaping, unreachable dead code, non-attacker input).
+3. **Zero-Penalty Strategy**:
+   - High-precision models (like Claude Sonnet) return fewer hallucinations, making it dramatically easier to achieve 100% accuracy and avoid penalties.
 
 ---
 
