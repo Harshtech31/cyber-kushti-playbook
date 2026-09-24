@@ -67,101 +67,78 @@ every compliance and security control.
 
 ### Phase 1 — Initial Access via Unmanaged Printer
 
-**Step 1 — Printer Default Credentials → Service Account Harvest** `(F1 → F2 → F4 → F5)`
+### Phase 1 — Initial Access via Unmanaged Printer
 
-1,327 network devices are invisible to every Kaveri security control (F1, F2). Among these: 318 of
-340 printers use vendor default passwords on their web admin interface (F4). The web admin interface
-exposes stored service account credentials for `svc-printscan` and `svc-printldap` (F5) — retrievable
-by any user who can reach the interface. No authentication change is required; default password is
-the only barrier.
+**Step 1 — Initial Credential Harvesting via Default Printer Web Interfaces** `(F4 → F5 → F6 → F7)`
 
----
-
-### Phase 2 — Data Exfiltration (2 February – 8 May 2027)
-
-**Step 2 — svc-printscan → Newsroom Rundowns + Media Asset Library** `(F7 → F8 → F9 → F22 → F23)`
-
-`svc-printscan` has write access to the Rundowns share (granted in 2021, F7) which holds the
-newsroom's scripts and rundowns (F8). The media asset management system authorises any Domain Users
-member to read the full content library (F23), and `svc-printscan` is Domain Users.
-
-Between 2 February and 8 May the attacker uses `svc-printscan` to make 41,000 asset reads from
-the MAM content library (F22) and accesses the Rundowns share — the forum post on 9 May contains
-an internal rundown file directly matched from the share (F9). Three months of continuous content
-exfiltration.
+The attacker accessed one or more of the 318 (out of 340) multifunction printers operating with default
+vendor web administration passwords (F4). As documented by the vendor, the administrative interface exposes
+stored service credentials in plaintext (F5). The attacker extracted two Active Directory accounts:
+`KAVERI\svc-printldap` (used for directory address book queries) and `KAVERI\svc-printscan` (used for
+scan-to-folder file share writes) (F5, F6, F7).
 
 ---
 
-### Phase 3 — Network Disruption via SNMP Write
+### Phase 2 — Reconnaissance & Content Exfiltration
 
-**Step 3 — SNMP Write Community String → VLAN Reconfiguration → Broadcast Blackout** `(F10 → F11 → F12 → F13 → F14)`
+**Step 2 — Reconnaissance, Content Library Access, and Rundown Exfiltration** `(F7 → F8 → F9 → F22 → F23 → F30)`
 
-All network switches, routers and power devices are monitored via SNMP v2c (F10). The protocol
-transmits the community string in plaintext (F11) — the attacker can observe it by sniffing, or
-by reading it from the monitoring platform via the earlier access path. Holding the write string
-allows configuration changes on any device.
+Between 2 February and 8 May 2027, the attacker used `svc-printldap` to perform abnormal directory
+reconnaissance, generating 6,100 authentications (a 15x spike over the ~400/month baseline) (F30).
+Leveraging `svc-printscan`'s standard Domain Users membership, the attacker performed 41,000 unauthorized
+asset read operations in the Media Asset Management (MAM) system, where the account held no legitimate
+business role (F22, F23). Furthermore, because `svc-printscan` held write access to the Rundowns file share
+(granted in 2021), the attacker accessed newsroom scripts, successfully exfiltrating an internal bulletin
+rundown that was subsequently leaked to a public forum on 9 May (F7, F8, F9).
 
-Between 1 and 9 May, the attacker modifies the VLAN assignment of 8 switch ports on the Chennai
-gallery distribution switch serving the four playout server pairs (F12, F13). At 19:58 on 9 May
-the channels go to black. Playout servers remain powered and running; the automation system
-continues to command normally (F14) — the disruption is purely network isolation via VLAN
-reconfiguration. The monitoring platform detects the port transitions at 19:57 but the alert
-reaches an unmonitored shared mailbox (F28).
+---
+
+### Phase 3 — Network Disruption via SNMPv2c
+
+**Step 3 — Denial of Service via Network VLAN Reconfiguration** `(F10 → F11 → F12 → F13 → F14 → F15 → F28)`
+
+The attacker used the global, plaintext SNMPv2c write community string—which had been set in 2018 and shared
+identically across all network switches, routers, and PDUs across all three sites (F10, F11)—to modify the
+Chennai gallery distribution switch (F12). At 19:57 on 9 May, the switch changed the VLAN assignments for
+eight ports serving all four active/standby playout server pairs (F12, F13, F28). This immediately severed
+playout network connectivity at 19:58, causing all four regional channels to drop to black simultaneously
+while the servers and automation remained running normally (F13, F14, F15).
 
 ---
 
 ### Phase 4 — Building Automation Attack
 
-**Step 4 — Unauthenticated Building Management Commands → Thermal Incident** `(F16 → F17)`
+**Step 4 — Studio Infrastructure Disruption via Unauthenticated Building Automation** `(F16 → F17, Section 3)`
 
-The 26 building management controllers for studio air handling accept commands over a building
-automation protocol with no authentication, and sit on the corporate network (F16). At 20:02 on
-9 May — 4 minutes into the outage — the attacker sends a setpoint change and a disable command to
-the Chennai gallery air handling unit (F17). The rack room temperature rises to 41°C before
-portable cooling is deployed.
-
----
-
-### Phase 5 — Persistence via Baseboard Management Controllers
-
-**Step 5 — BMC Virtual Media Mounts → Potential Deep Persistence** `(F18 → F19 → F20 → F21)`
-
-410 server baseboard management controllers sit on a dedicated management network reachable from
-corporate, running firmware from 2018–2022 (F18). BMCs permit remote console and virtual media —
-equivalent to physical server access (F19). Eleven BMCs show virtual media mount events (oldest
-retained entries, undatable due to 200-entry overwrite) (F20). The corporate-to-management-network
-firewall has never logged (F21). These events likely represent persistence staging but cannot be
-precisely timed.
+At 20:02 on 9 May (four minutes into the broadcast blackout), the attacker sent network commands across
+the corporate network to the Chennai gallery air handling unit controller (F16, F17). Because the 26
+building management controllers accept commands over an unauthenticated building automation protocol (F16),
+the attacker successfully applied a setpoint change and a disable command (F17). This shut down the studio
+air handling, driving rack room ambient temperatures up to 41°C before portable cooling was manually
+deployed (F17, Section 3).
 
 ---
 
 ## Kill Chain Summary (Portal Entry Format)
 
 ```
-Step 1 — INITIAL ACCESS: PRINTER DEFAULT CREDENTIALS → SERVICE ACCOUNT HARVEST (F4 → F5)
-318 of 340 printers use vendor default password. Web admin exposes stored svc-printscan and
-svc-printldap credentials — retrievable by any network host. All 340 printers are unmanaged
-(F1, F2): no CMDB, no patching, no scanning. Attacker accesses printer, extracts both credentials.
+Step 1 — INITIAL CREDENTIAL HARVESTING VIA DEFAULT PRINTER WEB INTERFACES (F4 → F5 → F6 → F7)
+Attacker accesses unmanaged printers with vendor default passwords (F4). Extracts stored plaintext
+credentials for KAVERI\svc-printldap (directory queries) and KAVERI\svc-printscan (file share writes) (F5).
 
-Step 2 — DATA EXFILTRATION: NEWSROOM RUNDOWNS + MEDIA ASSET LIBRARY (2 Feb – 8 May) (F7 → F8 → F22 → F23 → F9)
-svc-printscan has write on Rundowns share (newsroom scripts). MAM authorises any Domain Users
-member to read full content library (F23). Attacker makes 41,000 asset reads in MAM (F22) and
-steals rundowns — exfiltrated rundown posted publicly on 9 May (F9). Three months of access.
+Step 2 — RECONNAISSANCE, CONTENT LIBRARY ACCESS, AND RUNDOWN EXFILTRATION (F7 → F8 → F9 → F22 → F23 → F30)
+svc-printldap abused for directory recon (6,100 auths, 15x spike) (F30). svc-printscan used for 41,000
+unauthorized MAM asset reads (F22, F23) and exfiltrating newsroom scripts from Rundowns share (F7, F8),
+leaked to public forum on 9 May (F9).
 
-Step 3 — NETWORK DISRUPTION: SNMP WRITE → VLAN RECONFIGURATION → BROADCAST BLACKOUT (9 May) (F10 → F11 → F12 → F13)
-All network devices use SNMP v2c with single write community string across all three sites (F10).
-String transmitted in plaintext (F11). Attacker modifies VLAN assignment on 8 playout switch ports
-on Chennai gallery distribution switch (F12). At 19:58 all four channels go to black. Servers stay
-running; automation system commands normally — disruption is network isolation only (F13, F14).
+Step 3 — DENIAL OF SERVICE VIA NETWORK VLAN RECONFIGURATION (F10 → F11 → F12 → F13 → F14 → F15 → F28)
+Attacker uses global plaintext SNMPv2c write community string (F10, F11) to alter VLAN assignments on 8
+playout switch ports on Chennai gallery distribution switch at 19:57 (F12, F13, F28). Causes simultaneous
+broadcast blackout at 19:58 while playout servers and automation remain running normally (F13, F14, F15).
 
-Step 4 — BUILDING AUTOMATION: UNAUTHENTICATED COMMANDS → THERMAL INCIDENT (20:02, 9 May) (F16 → F17)
-Building management controllers accept unauthenticated commands on corporate network (F16).
-At 20:02 attacker disables Chennai gallery air handling — rack room reaches 41°C (F17).
-
-Step 5 — PERSISTENCE: BMC VIRTUAL MEDIA MOUNTS (UNDATED) (F18 → F19 → F20)
-BMC fleet reachable from corporate, firmware from 2018–2022 (F18). 11 BMCs show virtual media
-mount events — undatable due to log overwrite (F20). Firewall never logged (F21). Likely staging
-or persistence established during the January–May access window.
+Step 4 — STUDIO INFRASTRUCTURE DISRUPTION VIA UNAUTHENTICATED BUILDING AUTOMATION (F16 → F17, Section 3)
+At 20:02 on 9 May, attacker sends unauthenticated commands to Chennai gallery air handling unit controller
+(F16). Applies setpoint change and disable command (F17), driving rack room temperature to 41°C (Section 3).
 ```
 
 ---
