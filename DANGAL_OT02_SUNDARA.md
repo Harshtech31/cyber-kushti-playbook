@@ -72,118 +72,97 @@ corporate path.
 
 ### Phase 1 — Supply Chain Initial Access
 
-**Step 1 — Thermaxis Corporate Compromise → Vendor Tunnel** `(F4 → F1 → F2 → F31)`
+**Step 1 — Supply Chain Initial Access: Pivot Through Thermaxis VPN Tunnel** `(F4 → F1 → F2 → F31)`
 
-Thermaxis's corporate network, including customer support infrastructure, was compromised from
-approximately July 2026 (F4). Attacker gains access to Thermaxis's network and from it initiates
-the site-to-site tunnel to Sundara (F1 — PSK from 2018, never rotated, authenticates site not
-individual). Logs into the vendor appliance as `thermaxis-svc` (F2 — single shared account, no
-individual identity possible).
-
-The appliance session log records 4 sessions between 2 and 5 November 2026 (F31). Thermaxis's
-own service records show no scheduled or unscheduled support activity for Sundara in that period.
-These 4 sessions are the unauthorized attacker sessions.
-
-The DMZ-to-autoclave segment firewall has no logging enabled (F6) — no record of what the
-appliance reached or when.
+Thermaxis's corporate network and customer support infrastructure were compromised from approximately
+July 2026 (F4). Attacker leveraged the permanent, unrotated site-to-site IPsec tunnel established in
+2018 (F1) to reach Sundara's DMZ vendor support appliance. Attacker authenticated using the shared
+vendor account `thermaxis-svc` (F2), establishing 4 unauthorized support sessions between 2 and 5
+November 2026 for which Thermaxis had zero scheduled or authorized service activities (F31).
 
 ---
 
-### Phase 2 — Trojanized Firmware Deployment
+### Phase 2 — Lateral Movement & Protocol Reconnaissance
 
-**Step 2 — Write Unsigned Firmware to Autoclave 3 via OPC UA** `(F7 → F8 → F9 → F10 → F11)`
+**Step 2 — Lateral Movement to Autoclave Segment & Unauthenticated OPC UA Discovery** `(F6 → F7 → F8)`
 
-From the vendor appliance, attacker reaches autoclave 3's controller on the autoclave segment.
-OPC UA is configured with security policy None and anonymous authentication on all four autoclaves
-(F7). With this configuration, any host able to reach the endpoint can read or write any node
-without credentials; traffic is unencrypted and unprotected (F8).
-
-Autoclave controllers accept firmware images without signature verification (F9). Attacker
-deploys a trojanized firmware image. The controller event log records one firmware update event
-dated to the 2–5 November window (F10). The firmware running on autoclave 3 on 18 March does
-not match any Thermaxis build record (F11) — it was not issued by the legitimate vendor.
+From the DMZ support appliance, the attacker traversed the unmonitored firewall rule set into the
+autoclave control segment (F6). Attacker enumerated the plant network and discovered that OPC UA server
+endpoints across all four autoclave controllers were configured with security policy `None` and
+anonymous user authentication (F7). This architectural misconfiguration allowed any host reaching the
+endpoints to read and write arbitrary controller nodes without credentials or encryption (F8).
 
 ---
 
-### Phase 3 — Process Data Falsification
+### Phase 3 — Malicious Firmware Deployment
 
-**Step 3 — Trojanized Firmware Reports False Sterilisation Parameters** `(F13 → F14 → F15 → F16)`
+**Step 3 — Unsigned Malicious Firmware Flashing on Autoclave 3 Controller** `(F9 → F10 → F11 → F12)`
 
-The affected batch is sterilised on autoclave 3 on 4 November 2026 (F13). The trojanized firmware
-reports a hold phase of 41 minutes and sufficient accumulated lethality to the process historian (F14).
-
-This is physically impossible: the preceding cycle on autoclave 3 ended at 09:14 and the following
-cycle began at 10:02 — only 48 minutes available. A 41-minute hold plus the documented 18 minutes
-of heat-up, equilibration and cooling (F16 — consistent across 220 other cycles) requires 59 minutes
-(F15). The actual hold phase was at most approximately 30 minutes — insufficient for the required
-lethality.
-
-The historian faithfully records the false values reported by the controller.
+The autoclave programmable controllers lacked cryptographic signature verification on incoming firmware
+updates, accepting raw binary images sent over the support connection (F9). The attacker uploaded and
+flashed an unauthorized, modified firmware image onto Autoclave 3's controller during the 2–5 November
+access window, recorded as a single update event in the controller's overwritten event log (F10). The
+resulting firmware hash matched no Thermaxis build record, while the other three autoclaves remained
+on genuine vendor firmware (F11, F12).
 
 ---
 
-### Phase 4 — Audit Trail Bypass → Batch Record Fabrication
+### Phase 4 — Autonomous Process Telemetry Falsification
 
-**Step 4 — Historian Writes Fabricated Data via Audit-Exempt Account** `(F20 → F21 → F22)`
+**Step 4 — Autonomous Process Telemetry Falsification by Trojanized Firmware** `(F13 → F14 → F15 → F16)`
 
-The process historian writes cycle data into the electronic batch record via the service account
-`ebr-histlink`. This account is configured as exempt from audit trail capture — exempted in 2019
-so routine automated inserts would not overwhelm the trail (F20). The exemption means historian
-writes create no modification entries in the audit trail, regardless of what values are written.
+During the production run on 4 November 2026 for the affected batch (F13), the trojanized firmware
+abbreviated the physical sterilization hold cycle (to approximately 30 minutes) while autonomously
+transmitting fabricated telemetry over OPC UA to the process historian, falsely reporting a full
+41-minute hold phase and passing lethality metrics (F14). This fabricated report was physically
+impossible: the preceding cycle ended at 09:14 and the next began at 10:02 (only 48 minutes total elapsed),
+whereas a real 41-minute hold plus standard 18-minute heat-up/equilibration/cool-down requires at least
+59 minutes (F15, F16).
 
-The batch record assembles with the historian's falsified parameters. The record is complete,
-internally consistent, and shows every parameter within specification. The audit trail contains no
-modification entries of any kind between assembly and QP signature (F21).
+---
 
-Optional time alignment: the plant-wide time server has no authentication and accepts configuration
-over HTTP with vendor default credentials (F17). If the timestamps needed adjustment, the attacker
-could have shifted the time server to align all clock-derived timestamps (F18, F19) — the time
-server log was never enabled so this cannot be confirmed or denied.
+### Phase 5 — Silent Batch Record Injection via Audit-Exempt Account
 
-**Step 5 — Qualified Person Releases Contaminated Batch** `(F22)`
+**Step 5 — Silent Batch Record Injection via Audit-Exempt Integration Account** `(F20 → F21)`
 
-The Qualified Person reviews the assembled batch record. The signature, the review steps and the
-timestamps are all present and consistent (F22). The QP has no mechanism to detect that the
-process parameters were reported by trojanized firmware or that the historian integration is
-exempt from audit trail capture. The QP releases the batch.
-
-Contaminated product ships to regulated markets. In March 2027, two units from the batch show
-visible particulate matter in a German hospital pharmacy, triggering recall and regulatory
-notification.
+The process historian ingested the fabricated hold and lethality parameters from Autoclave 3 and
+automatically committed them into the Electronic Batch Record (EBR) system using the integration service
+account `ebr-histlink` (F20). Because `ebr-histlink` was configured as exempt from audit trail capture
+(an exemption dating to 2019 to prevent automated entries from overwhelming the log), the falsified cycle
+data was written directly into the legal batch record without generating any modification entries or audit
+flags (F20). This produced a complete, internally consistent batch record showing every parameter in
+specification without a single audit trail discrepancy (F21).
 
 ---
 
 ## Kill Chain Summary (Portal Entry Format)
 
 ```
-Step 1 — SUPPLY CHAIN: THERMAXIS COMPROMISE → VENDOR TUNNEL → PLANT ACCESS (Nov 2026)
-Thermaxis corporate network compromised from ~Jul 2026; support infrastructure in scope (F4).
-Attacker connects through site-to-site tunnel (PSK from 2018, never rotated, site auth only) (F1).
-Logs into vendor appliance as shared account thermaxis-svc (F2). 4 sessions 2–5 Nov recorded in
-appliance log (F31); Thermaxis records show no authorized activity in that period. DMZ firewall
-not logging — no record of what was reached (F6).
+Step 1 — SUPPLY CHAIN INITIAL ACCESS VIA THERMAXIS VPN TUNNEL (2–5 Nov) (F4 → F1 → F2 → F31)
+Attacker pivots from compromised Thermaxis network (F4) through unrotated site-to-site IPsec tunnel
+(F1) into DMZ vendor appliance. Authenticates with shared account thermaxis-svc (F2) across 4
+unauthorized sessions (F31). Firewall logging disabled (F6).
 
-Step 2 — TROJANIZED FIRMWARE ON AUTOCLAVE 3 VIA UNAUTHENTICATED OPC UA (2–5 Nov)
-OPC UA configured with security policy None and anonymous auth on all autoclaves (F7, F8).
-Any host on plant network can write any node without credentials. Controllers accept unsigned
-firmware (F9). Attacker deploys trojanized firmware to autoclave 3. Controller event log records
-firmware update 2–5 Nov (F10); firmware hash matches no Thermaxis build record (F11).
+Step 2 — LATERAL MOVEMENT & UNAUTHENTICATED OPC UA DISCOVERY (F6 → F7 → F8)
+From DMZ appliance, attacker pivots into autoclave subnet (F6). Discovers OPC UA server endpoints on
+all autoclave controllers configured with security policy None and anonymous authentication (F7),
+allowing uncredentialed, unencrypted read/write access to controller nodes (F8).
 
-Step 3 — FIRMWARE FALSIFIES STERILISATION PARAMETERS TO HISTORIAN (4 Nov)
-Affected batch sterilised on autoclave 3 on 4 Nov (F13). Trojanized firmware reports 41-min hold
-and required lethality to historian (F14). Physically impossible: only 48 min between cycles;
-41+18 min required = 59 min (F15, F16). Actual hold ~30 min — insufficient lethality.
-Historian records the fabricated values faithfully.
+Step 3 — UNSIGNED MALICIOUS FIRMWARE FLASHING ON AUTOCLAVE 3 (2–5 Nov) (F9 → F10 → F11 → F12)
+Controllers accept firmware images without cryptographic signature verification (F9). Attacker flashes
+trojanized firmware onto Autoclave 3 controller during 2–5 Nov window (F10). Firmware hash matches no
+legitimate Thermaxis build (F11); other autoclaves unaffected (F12).
 
-Step 4 — AUDIT-EXEMPT HISTORIAN ACCOUNT WRITES FALSE DATA → NO MODIFICATION ENTRY (4 Nov)
-Historian writes to batch record via ebr-histlink, which is exempt from audit trail capture (F20).
-Fabricated parameters enter the batch record with zero audit trail evidence. Record appears
-complete, consistent, all parameters within specification (F21).
+Step 4 — AUTONOMOUS PROCESS TELEMETRY FALSIFICATION VIA TROJANIZED FIRMWARE (4 Nov) (F13 → F14 → F15 → F16)
+Affected batch sterilized 4 Nov (F13). Trojanized firmware shortens physical hold cycle but transmits
+fabricated telemetry to process historian via OPC UA, reporting a 41-min hold and full lethality (F14).
+Falsification is physically impossible: only 48 min available between cycles where 59 min is required
+(41 + 18 min) (F15, F16).
 
-Step 5 — QUALIFIED PERSON RELEASES CONTAMINATED BATCH (Nov 2026)
-QP reviews assembled record; signature, review steps and timestamps all present and consistent (F22).
-No mechanism to detect firmware falsification or audit trail exemption. Batch released. Contaminated
-product ships to regulated markets. Particulate matter reported in Germany, Mar 2027.
+Step 5 — SILENT BATCH RECORD INJECTION VIA AUDIT-EXEMPT INTEGRATION ACCOUNT (F20 → F21)
+Historian writes fabricated cycle data into Electronic Batch Record system using service account
+ebr-histlink (F20). Because ebr-histlink is exempt from audit trail capture, fabricated parameters are
+committed with zero audit trail modification records, creating an ostensibly pristine batch record (F21).
 ```
 
 ---
